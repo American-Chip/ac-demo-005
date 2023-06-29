@@ -1,0 +1,16 @@
+*.js
+!jest.config.js
+*.d.ts
+node_modules
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+
+# website output
+website-output/power-tuner-ui/*
+
+# Parcel build directories
+.cache
+.build
+/website-output/

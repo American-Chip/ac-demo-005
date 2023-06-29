@@ -1,0 +1,267 @@
+<div class="main">
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container">
+      <label class="navbar-brand">
+        <img src="../assets/images/aws logo.png" height="30" class="d-inline-block align-top mr-3" alt=""
+          loading="lazy">
+        Lambda Power Tuner
+      </label>
+      <a href="https://github.com/mattymoomoo/aws-power-tuner-ui" target="_blank" class="navbar-text github">
+        <i class="fab fa-github-alt"></i>
+      </a>
+    </div>
+  </nav>
+
+  <div class="container pb-5">
+    <div class="alert alert-info" role="alert">
+      <div class="alert-message">
+        <span class="align-self-center">
+          <i class="fa fa-fw fa-info-circle"></i> AWS Lambda Power Tuning is an open-source tool that can help you
+          visualize and fine-tune the memory/power
+          configuration of Lambda functions. It runs in your own AWS account - powered by AWS Step Functions - and it
+          supports three optimization strategies: cost, speed, and balanced. Read more about it
+          <a href="https://github.com/alexcasalboni/aws-lambda-power-tuning">here</a>
+        </span>
+      </div>
+    </div>
+
+    <form class="form" id="tunerForm" *ngIf="formGroup" [formGroup]="formGroup">
+      <div class="row">
+        <div class="col-12">
+          <fieldset class="card p-lg-4 p-md-3 p-2">
+            <div class="row">
+              <legend class="col-form-label col-12">Lambda Power Tuner</legend>
+            </div>
+            <div class="row">
+              <div class="col-sm-12 col-md-5 col-lg-5">
+                <label for="operationType">What operation do you want to run?</label>
+                <select formControlName="operationType" class="form-control" id="operationType">
+                  <option *ngFor="let type of operationTypes">{{ type }}</option>
+                </select>
+              </div>
+            </div>
+            <div *ngIf="operationType === 'New Tuner'" class="fields">
+              <div class="row mt-3">
+                <div class="col-12"><label class="top-label">Lambda ARN</label></div>
+              </div>
+              <div class="row">
+                <div class="col-12">
+                  <div class="form-group"
+                    [ngClass]="{ 'invalid': formGroup['controls'].lambdaARN.invalid && (formGroup['controls'].lambdaARN.touched || validationTriggered) }">
+                    <input autocomplete="disabled" class="form-control" id="lambdaARN" formControlName="lambdaARN"
+                      name="lambdaARN" placeholder="arn:aws:lambda:us-east-1:...." type="text">
+                  </div>
+                </div>
+              </div>
+              <div class="row mt-1">
+                <div class="col-sm-12 col-md-4 col-lg-4">
+                  <div class="form-group">
+                    <label for="strategy">Strategy</label>
+                    <select formControlName="strategy" class="form-control" id="strategy">
+                      <option *ngFor="let strategy of strategies" [value]="strategy.value">{{ strategy.label }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-sm-12 col-md-4 col-lg-4" *ngIf="formGroup.controls.strategy.value === 'balanced'">
+                  <label for="balancedWeight">Balanced weight (0 - 1)</label>
+                  <div class="form-group"
+                    [ngClass]="{ 'invalid': formGroup['controls'].balancedWeight.invalid && (formGroup['controls'].balancedWeight.touched || validationTriggered) }">
+                    <input autocomplete="disabled" class="form-control" id="balancedWeight" step="0.1"
+                      formControlName="balancedWeight" name="balancedWeight" placeholder=" " min="0.0" max="1"
+                      type="number">
+                  </div>
+                </div>
+                <div class="col-sm-12 col-md-4 col-lg-4">
+                  <div class="form-group"
+                    [ngClass]="{ 'invalid': formGroup['controls'].num.invalid && (formGroup['controls'].num.touched || validationTriggered) }">
+                    <label for="num">Invocation Number</label>
+                    <input autocomplete="disabled" class="form-control" id="num" step="1" formControlName="num"
+                      name="num" placeholder=" " min="5" max="2000" type="number">
+                  </div>
+                </div>
+              </div>
+              <div class="row mt-1">
+                <div class="col-sm-12 col-md-6 col-lg-6">
+                  <div class="form-group">
+                    <label for="powerValues">Power values (MB)</label>
+                    <div class="mb-2">
+                      <div class="form-check form-check-inline">
+                        <input formControlName="useCustom" class="form-check-input" type="radio" id="useDefault"
+                          [value]="'default'">
+                        <label class="form-check-label" for="useDefault">Default values</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input formControlName="useCustom" class="form-check-input" type="radio" id="useCustomYes"
+                          [value]="'custom'">
+                        <label class="form-check-label" for="useCustomYes">Custom values</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input formControlName="useCustom" class="form-check-input" type="radio" id="useCustomNo"
+                          [value]="'ALL'">
+                        <label class="form-check-label" for="useCustomNo">All possible values</label>
+                      </div>
+                    </div>
+                    <div *ngIf="formGroup.controls['useCustom'].value === 'default'">
+                      <label class="form-check-label"><i>128, 256, 512, 1024, 1536, 3008</i></label>
+                    </div>
+                    <div *ngIf="formGroup.controls['useCustom'].value === 'ALL'">
+                      <label class="form-check-label"><i>Warning: This runs every 64mb increment from 128b to 10240mb</i></label>
+                    </div>
+                    <select *ngIf="formGroup.controls['useCustom'].value === 'custom'" multiple
+                      formControlName="powerValues" class="form-control" id="powerValues">
+                      <option *ngFor="let powerValue of powerValues">{{ powerValue }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-sm-12 col-md-6 col-lg-6">
+                  <div class="form-group">
+                    <label for="powerValues">Execute in Parallel</label>
+                    <div class="mb-2">
+                      <div class="form-check form-check-inline">
+                        <input formControlName="parallelInvocation" class="form-check-input" type="radio"
+                          id="parallelInvocationYes" [value]="true">
+                        <label class="form-check-label" for="parallelInvocationYes">Yes</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input formControlName="parallelInvocation" class="form-check-input" type="radio"
+                          id="parallelInvocationNo" [value]="false">
+                        <label class="form-check-label" for="parallelInvocationNo">No</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-1">
+                <div class="col-12"><label class="top-label">Include JSON payload</label></div>
+              </div>
+              <div class="row mt-1">
+                <div class="col-sm-12 col-md-5 col-lg-5">
+                  <div class="form-check form-check-inline">
+                    <input formControlName="includePayload" class="form-check-input" type="radio" id="includePayloadYes"
+                      [value]="true">
+                    <label class="form-check-label" for="includePayloadYes">Yes</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input formControlName="includePayload" class="form-check-input" type="radio" id="includePayloadNo"
+                      [value]="false">
+                    <label class="form-check-label" for="includePayloadNo">No</label>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="formGroup.controls.includePayload.value" class="row">
+                <div class="col-12">
+                  <div class="form-group mb-1">
+                    <textarea autocomplete="disabled" class="form-control" id="payload" formControlName="payload"
+                      name="payload" placeholder="{ }" type="text"></textarea>
+                  </div>
+                  <label>Please ensure this is a valid JSON payload. Verify <a
+                      href="https://jsonlint.com?json={{formGroup.controls.payload.value}}"
+                      target="_blank">here</a></label>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="operationType === 'Existing execution ID'" class="fields">
+              <div class="row mt-3">
+                <div class="col-12">
+                  <div class="form-group"
+                    [ngClass]="{ 'invalid': formGroup['controls'].executionId.invalid && (formGroup['controls'].executionId.touched || validationTriggered) }">
+                    <label for="executionId">Execution ID</label>
+                    <input autocomplete="disabled" class="form-control" id="executionId" formControlName="executionId"
+                      name="executionId" placeholder="e.g. 3fa26099-863d-44a0-a7eb-e3419d06332e" type="text">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-12 text-right">
+                <button for="resetTuning" class="btn btn-secondary mr-2" (click)="resetTuning()"
+                  [disabled]="resultsProcessing">Reset</button>
+                <button for="startTuning" class="btn btn-success" (click)="startTuning()"
+                  [disabled]="formDisabled">{{ getFormLabel }}</button>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+
+      <div id="results" *ngIf="resultsBack || resultsProcessing || resultsError" class="row mt-3">
+        <div class="col-12">
+          <fieldset class="card p-lg-4 p-md-3 p-2">
+            <div class="row">
+              <legend class="col-form-label col-12">
+                {{ resultsProcessing ? 'Fetching tuner results' : hasVisualisation ? getVisLabel : 'Results ' }}
+                <span class="lighter" *ngIf="executionToken">- ID: {{ executionToken }}</span></legend>
+            </div>
+
+            <div *ngIf="resultsProcessing" class="row processing my-3">
+              <div class="col-12 text-center">
+                <i class="fa fa-spinner fa-spin"></i>
+              </div>
+            </div>
+
+            <div *ngIf="resultsError" class="row">
+              <div class="col-12">
+                <p class="lead">
+                  It appears something went wrong with the power tuning. Please verify your payload matches what the
+                  lambda
+                  expects and the ARN is located in the correct account. If you want to debug further, please navigate
+                  to
+                  the <a href="https://console.aws.amazon.com/console/home?#" target="_blank">AWS console</a> viewing
+                  the executions of the power tuner using the Step Functions service.
+                </p>
+              </div>
+            </div>
+
+            <div *ngIf="hasVisualisation">
+              <div class="row">
+                <div class="col-12">
+                  <iframe [src]="visualisationUrl"></iframe>
+                </div>
+              </div>
+              <div class="row mt-2">
+                <div class="col-12 text-right">
+                  <button for="viewURL" class="btn btn-secondary mr-2"
+                    (click)="navigateToUrl(results.stateMachine.visualization)">Open in browser</button>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+
+      <div *ngIf="hasVisualisation" class="row my-3">
+        <div class="col-sm-12 col-md-4 col-lg-4">
+          <fieldset class="card p-lg-4 p-md-3 p-2">
+            <div class="row">
+              <div class="col-12">
+                <p>Recommended Memory</p>
+                <h4>{{ results.power }} mb</h4>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <div class="col-sm-12 col-md-4 col-lg-4">
+          <fieldset class="card p-lg-4 p-md-3 p-2">
+            <div class="row">
+              <div class="col-12">
+                <p>Avg. Cost</p>
+                <h4>${{ formatValue(results.cost, 7) }}</h4>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <div class="col-sm-12 col-md-4 col-lg-4">
+          <fieldset class="card p-lg-4 p-md-3 p-2">
+            <div class="row">
+              <div class="col-12">
+                <p>Avg. Duration</p>
+                <h4>{{ formatValue(results.duration) }} ms</h4>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
